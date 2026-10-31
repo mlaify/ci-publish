@@ -47,7 +47,7 @@ jobs:
             head=$(gh api "repos/$OWNER/$name/commits/$branch" --jq .sha)
             reported=""
             if [ -n "$REPORTS_URL" ] && [ -n "$REPORTS_AUTH" ]; then
-              reported=$(curl -fsS -u "$REPORTS_AUTH" "${REPORTS_URL%/}/$name/latest/meta.json" 2>/dev/null | jq -r .sha || true)
+              reported=$(curl -fsS -u "$REPORTS_AUTH" "${REPORTS_URL%/}/${name/#./dot-}/latest/meta.json" 2>/dev/null | jq -r .sha || true)
             fi
             if [ "$ALL" = true ] || [ "$head" != "$reported" ]; then echo "$name" >>"$RUNNER_TEMP/scan"; fi
           done <"$RUNNER_TEMP/public"
@@ -115,15 +115,20 @@ jobs:
         with:
           name: report-${{ matrix.repo }}
           path: ${{ runner.temp }}/report
+      # Report folders can't start with a dot (the site hides them), so .github reports as dot-github.
       - id: meta
         if: steps.get.outcome == 'success'
-        run: echo "sha=$(jq -r .sha "$RUNNER_TEMP/report/meta.json")" >>"$GITHUB_OUTPUT"
+        env:
+          REPO: ${{ matrix.repo }}
+        run: |
+          echo "sha=$(jq -r .sha "$RUNNER_TEMP/report/meta.json")" >>"$GITHUB_OUTPUT"
+          echo "slug=${REPO/#./dot-}" >>"$GITHUB_OUTPUT"
       - if: steps.get.outcome == 'success'
         uses: ./.github/actions/publish
         with:
           channel: reports
           source: ${{ runner.temp }}/report
-          dest: ${{ matrix.repo }}/${{ steps.meta.outputs.sha }}
+          dest: ${{ steps.meta.outputs.slug }}/${{ steps.meta.outputs.sha }}
         env:
           PUBLISH_SSH_KEY: ${{ secrets.PUBLISH_SSH_KEY }}
           PUBLISH_KNOWN_HOSTS: ${{ secrets.PUBLISH_KNOWN_HOSTS }}
