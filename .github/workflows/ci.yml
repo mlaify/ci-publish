@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ACTIONLINT_VERSION: 1.7.8
+      ACTIONLINT_SHA256: be92c2652ab7b6d08425428797ceabeb16e31a781c07bc388456b4e592f3e36a
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: shellcheck
+        run: shellcheck -x host/promote.sh .github/actions/*/*.sh tests/*.sh tools/*.sh
+      - name: Python compiles
+        run: python3 -m py_compile ci/*.py tools/*.py .github/actions/*/*.py
+      - name: actionlint
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/al.tgz" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/al.tgz" | sha256sum -c --quiet -
+          tar -xzf "$RUNNER_TEMP/al.tgz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" .github/workflows/*.yml examples/*.yml
+      - name: promote.sh
+        run: bash tests/test_promote.sh

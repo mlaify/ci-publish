@@ -1,0 +1,191 @@
+# Lab image and tool mirror. Distributions and tools that have a stable "latest"
+# are managed by ci/mirror_update.py from mirror/sources.toml (the block at the end); add
+# one-off files by hand above it.
+# The SHA-256 here, reviewed in a pull request,
+# is the trust anchor: mirror_sync.py refuses a download that doesn't match it, and
+# tools/mirror-get.py checks the same hash when a lab VM fetches the file from the mirror.
+#
+# Take each hash from the upstream's *signed* checksum file after checking the signature
+# (for example: gpg --verify SHA256SUMS.gpg SHA256SUMS), never from an unsigned page.
+#
+# path: where it lands on the mirror; must include at least one directory.
+# Files over ~12 GB don't fit on a GitHub-hosted runner's disk; add those by hand over SFTP.
+# Names may not contain a server-side script extension (.sh, .py, .php, ...): promote.sh
+# rejects them. Ship scripts inside an archive instead.
+
+# [[file]]
+# path = "wordlists/seclists/SecLists-2026.x.tar.gz"
+# url = "https://github.com/danielmiessler/SecLists/archive/refs/tags/2026.x.tar.gz"
+# sha256 = "<computed once on a trusted machine; GitHub tag archives are not signed>"
+
+# BEGIN managed by ci/mirror_update.py: edit mirror/sources.toml, not this block
+[[file]]
+path = "alpine/3.24.3/alpine-virt-3.24.3-aarch64.iso"
+url = "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-virt-3.24.3-aarch64.iso"
+sha256 = "e34603080e942e9ebc670689eee77dd7a6551c823a6ff5a299e308ded268098f"
+
+[[file]]
+path = "alpine/3.24.3/alpine-virt-3.24.3-x86_64.iso"
+url = "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/x86_64/alpine-virt-3.24.3-x86_64.iso"
+sha256 = "cdc1bc0efc64d8d611bf3733f54868172a545888dfd726f518bf279bcb0ff1af"
+
+[[file]]
+path = "debian/13.7.0/debian-13.7.0-amd64-netinst.iso"
+url = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-13.7.0-amd64-netinst.iso"
+sha256 = "a7ef94ac2fb9a7fec454552abd629b7cc9d5155c886165a45649f5ce6167e355"
+
+[[file]]
+path = "fedora/44/silverblue/Fedora-Silverblue-ostree-x86_64-44-1.7.iso"
+url = "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Silverblue/x86_64/iso/Fedora-Silverblue-ostree-x86_64-44-1.7.iso"
+sha256 = "9ccec9b075a0a4358a7209b2667156aaeeec3a6a3c8d71cada45b57fca9b4682"
+
+[[file]]
+path = "fedora/44/workstation/Fedora-Workstation-Live-44-1.7.x86_64.iso"
+url = "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Workstation/x86_64/iso/Fedora-Workstation-Live-44-1.7.x86_64.iso"
+sha256 = "1620295f6a00c27c3208f0c00b8ece4eab1ec69b9002152d97488bf26a426ddf"
+
+[[file]]
+path = "kali/2026.3/kali-linux-2026.3-installer-amd64.iso"
+url = "https://cdimage.kali.org/kali-2026.3/kali-linux-2026.3-installer-amd64.iso"
+sha256 = "db9cbed33edb45727d16911813c2434fcd1419585007884153be22a03b30ec2f"
+
+[[file]]
+path = "kali/2026.3/kali-linux-2026.3-qemu-amd64.7z"
+url = "https://cdimage.kali.org/kali-2026.3/kali-linux-2026.3-qemu-amd64.7z"
+sha256 = "6a73c8496064cc5e6b26a82084b7a7e6d0aea92047e555af34a9208fd430bae8"
+
+[[file]]
+path = "remnux/202610b/remnux-noble-amd64.ova"
+url = "https://download.remnux.org/202610b/remnux-noble-amd64.ova"
+sha256 = "060acb0087c7ae6d138d7a994f5a1daf957fe3f9d0fdf72012b2c43e88876ef9"
+
+[[file]]
+path = "remnux/202610b/remnux-noble-arm64-utm.zip"
+url = "https://download.remnux.org/202610b/remnux-noble-arm64-utm.zip"
+sha256 = "59f3035e7ac3767f4626b1670a86782f483cae7961c9d39f05c968c3245bfa48"
+
+[[file]]
+path = "targets/metasploitable3-ub1404/0.1.12-weekly/metasploitable3-ub1404-virtualbox.box"
+url = "https://vagrantcloud.com/rapid7/boxes/metasploitable3-ub1404/versions/0.1.12-weekly/providers/virtualbox/unknown/vagrant.box"
+sha256 = "2a3e1708e4ff25ebf43be31ed243aea56d73503f1b63f9f34a9b80482f18e4c3"
+
+[[file]]
+path = "tools/cutter/v2.5.0/Cutter-v2.5.0-Linux-x86_64.AppImage"
+url = "https://github.com/rizinorg/cutter/releases/download/v2.5.0/Cutter-v2.5.0-Linux-x86_64.AppImage"
+sha256 = "b8ad215d7a9e2af9e1f463511229f16e1f4745a0fb541413e5f4787f949ac0cf"
+
+[[file]]
+path = "tools/cutter/v2.5.0/Cutter-v2.5.0-Windows-x86_64.zip"
+url = "https://github.com/rizinorg/cutter/releases/download/v2.5.0/Cutter-v2.5.0-Windows-x86_64.zip"
+sha256 = "a04154a03a392dbf5886a629938582f7d23a93636fa0611c3e1c34905b197e69"
+
+[[file]]
+path = "tools/cutter/v2.5.0/Cutter-v2.5.0-macOS-arm64.dmg"
+url = "https://github.com/rizinorg/cutter/releases/download/v2.5.0/Cutter-v2.5.0-macOS-arm64.dmg"
+sha256 = "ec08477489cb7f769d4121e5084b09131b02b6a801ac7a2d5896a67e87193452"
+
+[[file]]
+path = "tools/cyberchef/v11.0.0/CyberChef_v11.0.0.zip"
+url = "https://github.com/gchq/CyberChef/releases/download/v11.0.0/CyberChef_v11.0.0.zip"
+sha256 = "ccd2d999e30a876437f6115a695ac8701b0d3386c12b65a6dff6761237dfea20"
+
+[[file]]
+path = "tools/firecracker/v1.17.0/firecracker-v1.17.0-aarch64.tgz"
+url = "https://github.com/firecracker-microvm/firecracker/releases/download/v1.17.0/firecracker-v1.17.0-aarch64.tgz"
+sha256 = "e351ebe4f7a16b5873bbd51005d2e6767103cff4d5ebc829df2d3f95a93e2256"
+
+[[file]]
+path = "tools/firecracker/v1.17.0/firecracker-v1.17.0-x86_64.tgz"
+url = "https://github.com/firecracker-microvm/firecracker/releases/download/v1.17.0/firecracker-v1.17.0-x86_64.tgz"
+sha256 = "06094a1108ae9e82aa4c23a775aa92758f53f1175d422270d9d6162cb9ade558"
+
+[[file]]
+path = "tools/flare-vm/2026-10-07-5dc321d336f2/flare-vm-5dc321d336f2.zip"
+url = "https://github.com/mandiant/flare-vm/archive/5dc321d336f2d1b0c77343bdfd8cd3ac01ba1b37.zip"
+sha256 = "3b3fc54ae7f41ce6dabc817e4f5e26321a8dac44646048c26071ed89e43fdaed"
+
+[[file]]
+path = "tools/ghidra/Ghidra_12.1.4_build/ghidra_12.1.4_PUBLIC_20260921.zip"
+url = "https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_12.1.4_build/ghidra_12.1.4_PUBLIC_20260921.zip"
+sha256 = "ddac49f903da9d5bac833e5cc79395098b9c33cfd3279be5f31bd00387d2d4db"
+
+[[file]]
+path = "tools/lima/v2.2.1/lima-2.2.1-Darwin-arm64.tar.gz"
+url = "https://github.com/lima-vm/lima/releases/download/v2.2.1/lima-2.2.1-Darwin-arm64.tar.gz"
+sha256 = "9e9eacce88f37e185c346bad73aa6136f738d8cdf8c3bb23cd42b071824bc66e"
+
+[[file]]
+path = "tools/lima/v2.2.1/lima-2.2.1-Linux-x86_64.tar.gz"
+url = "https://github.com/lima-vm/lima/releases/download/v2.2.1/lima-2.2.1-Linux-x86_64.tar.gz"
+sha256 = "b391ac7fcac2b2a5a1628107756463188ded4d18d3104a40a66a8bb6fec01bcb"
+
+[[file]]
+path = "tools/radare2/6.2.4/radare2-6.2.4-w64.zip"
+url = "https://github.com/radareorg/radare2/releases/download/6.2.4/radare2-6.2.4-w64.zip"
+sha256 = "aa3454fd89e8a4ead450caff35a1d3919065744e7091540d4913a9487241799d"
+
+[[file]]
+path = "tools/radare2/6.2.4/radare2-arm64-6.2.4.pkg"
+url = "https://github.com/radareorg/radare2/releases/download/6.2.4/radare2-arm64-6.2.4.pkg"
+sha256 = "d69e366b09cb1c01a6808f74859571b1d8e73557f02a40898bc53004398e5a76"
+
+[[file]]
+path = "tools/radare2/6.2.4/radare2_6.2.4_amd64.deb"
+url = "https://github.com/radareorg/radare2/releases/download/6.2.4/radare2_6.2.4_amd64.deb"
+sha256 = "7019eedc0e0e87d1f53d6b8f5fc62b898567679c5efdce7fbfc557c9e7655e90"
+
+[[file]]
+path = "tools/temurin-jdk21/jdk-21.0.9_10/OpenJDK21U-jdk_x64_linux_hotspot_21.0.9_10.tar.gz"
+url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.9%2B10/OpenJDK21U-jdk_x64_linux_hotspot_21.0.9_10.tar.gz"
+sha256 = "810d3773df7e0d6c4394e4e244b264c8b30e0b05a0acf542d065fd78a6b65c2f"
+
+[[file]]
+path = "tools/volatility3/v2.28.2/volatility3-2.28.2-py3-none-any.whl"
+url = "https://github.com/volatilityfoundation/volatility3/releases/download/v2.28.2/volatility3-2.28.2-py3-none-any.whl"
+sha256 = "0461d6dd71b9ddbaf70c96e079c06efdf174ac65383b3dcf10dd165181fbd3c3"
+
+[[file]]
+path = "tools/volatility3/v2.28.2/volatility3-win-exes-2.28.2.zip"
+url = "https://github.com/volatilityfoundation/volatility3/releases/download/v2.28.2/volatility3-win-exes-2.28.2.zip"
+sha256 = "7ccd2394589bf15d88fb20b242157b93771bce26c0b3aafbba8f2c168a337fa5"
+
+[[file]]
+path = "tools/wireshark/4.6.9/Wireshark-4.6.9-x64.exe"
+url = "https://2.na.dl.wireshark.org/win64/Wireshark-4.6.9-x64.exe"
+sha256 = "bf9b5ce8a89f244c376a9b1a946276eaa06463dde3e33069a34d7f102f5878cf"
+
+[[file]]
+path = "tools/wireshark/4.6.9/Wireshark_4.6.9.dmg"
+url = "https://2.na.dl.wireshark.org/osx/Wireshark%204.6.9.dmg"
+sha256 = "10bd54ccdc3f40457f6a1f0c517bc93703fcb327c4cd4b93002e7a623dacbf38"
+
+[[file]]
+path = "tools/yara-src/v4.5.8/yara-src-v4.5.8.tar.gz"
+url = "https://github.com/VirusTotal/yara/archive/refs/tags/v4.5.8.tar.gz"
+sha256 = "c322414975ff6f701149856613afdcd92a7e6939c284c798ae3c85618197efaa"
+
+[[file]]
+path = "tools/yara/v4.5.5/yara-4.5.5-2368-win64.zip"
+url = "https://github.com/VirusTotal/yara/releases/download/v4.5.5/yara-4.5.5-2368-win64.zip"
+sha256 = "352396c8a3d9b31b157a4820abd3b9347fc934a2314cdda8a4f566a5570163e4"
+
+[[file]]
+path = "ubuntu-cloud/26.04/20261016/ubuntu-26.04-server-cloudimg-amd64.img"
+url = "https://cloud-images.ubuntu.com/releases/26.04/release-20261016/ubuntu-26.04-server-cloudimg-amd64.img"
+sha256 = "5645d0318ad21f643ebb1ac4567514620e9893380b07b0201fda163baa5b7eb5"
+
+[[file]]
+path = "ubuntu-cloud/26.04/20261016/ubuntu-26.04-server-cloudimg-arm64.img"
+url = "https://cloud-images.ubuntu.com/releases/26.04/release-20261016/ubuntu-26.04-server-cloudimg-arm64.img"
+sha256 = "8eb876c2ccc4b6ff89e4a65d511815923b285e04503ba465809bf587f763da24"
+
+[[file]]
+path = "ubuntu/26.04.1/ubuntu-26.04.1-live-server-amd64.iso"
+url = "https://releases.ubuntu.com/26.04.1/ubuntu-26.04.1-live-server-amd64.iso"
+sha256 = "cc8a95cde20f6ced61a322420de00f10cc3c90ced545daa46cb9c1a117f1d927"
+
+[[file]]
+path = "wordlists/seclists/2026.1/seclists-2026.1.tar.gz"
+url = "https://github.com/danielmiessler/SecLists/archive/refs/tags/2026.1.tar.gz"
+sha256 = "226c49d04974ec6c39dadbf38ba78e67fec8824d729e66907f6050329da98932"
+# END managed by ci/mirror_update.py

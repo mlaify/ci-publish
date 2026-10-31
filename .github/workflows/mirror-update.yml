@@ -1,0 +1,55 @@
+# Weekly: find the latest verified release of everything in mirror/sources.toml and open a pull request
+# when the manifest changes. Merging it runs mirror.yml, which downloads, checks and publishes.
+# Needs the setting "Allow GitHub Actions to create and approve pull requests" (Settings -> Actions -> General).
+name: mirror-update
+
+on:
+  schedule:
+    - cron: '41 9 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Resolve and verify the latest releases
+        id: update
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 ci/mirror_update.py | tee "$RUNNER_TEMP/update.txt"
+          echo "result=$(tail -n1 "$RUNNER_TEMP/update.txt")" >>"$GITHUB_OUTPUT"
+      - name: Open a pull request
+        if: steps.update.outputs.result == 'changed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="mirror/update-$(date -u +%Y%m%d)-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add mirror/manifest.toml
+          git commit -m "Mirror: new verified releases $(date -u +%F)"
+          git push -u origin "$branch"
+          {
+            echo "The weekly mirror update found new releases. Each hash was verified (signed checksum files for distributions, GitHub's SHA-256 after the cool-off for release assets)."
+            echo
+            echo '```'
+            sed '$d' "$RUNNER_TEMP/update.txt"
+            echo '```'
+            echo
+            echo "Merging runs the mirror sync."
+          } >"$RUNNER_TEMP/body.md"
+          gh pr create --base main --head "$branch" --title "Mirror: new verified releases $(date -u +%F)" --body-file "$RUNNER_TEMP/body.md"

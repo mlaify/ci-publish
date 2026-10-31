@@ -1,0 +1,51 @@
+# Every six hours (and on demand): publish new release files of the repositories in
+# packages/sources.toml to the package site (the PKG_URL variable, e.g. https://pkg.example.org).
+# The only publisher of each index, so publishes never race.
+name: packages
+
+on:
+  schedule:
+    - cron: '7 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: packages
+  cancel-in-progress: false
+
+jobs:
+  pypi:
+    runs-on: ubuntu-24.04
+    environment: ci-publish
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: collect
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PKG_BASE_URL: ${{ vars.PKG_URL }}/pypi
+        run: |
+          python3 ci/pkg_sync.py pypi "$RUNNER_TEMP/dist" | tee "$RUNNER_TEMP/collect.txt"
+          tail -n1 "$RUNNER_TEMP/collect.txt" >>"$GITHUB_OUTPUT"
+      - id: index
+        if: steps.collect.outputs.count != '0'
+        uses: ./.github/actions/pkg-index
+        with:
+          kind: pypi
+          packages: ${{ runner.temp }}/dist
+          base-url: ${{ vars.PKG_URL }}/pypi
+      - if: steps.collect.outputs.count != '0'
+        uses: ./.github/actions/publish
+        with:
+          channel: pkg
+          source: ${{ steps.index.outputs.dir }}
+          dest: pypi
+        env:
+          PUBLISH_SSH_KEY: ${{ secrets.PUBLISH_SSH_KEY }}
+          PUBLISH_KNOWN_HOSTS: ${{ secrets.PUBLISH_KNOWN_HOSTS }}
+          PUBLISH_HOST: ${{ secrets.PUBLISH_HOST }}
+          PUBLISH_USER: ${{ secrets.PUBLISH_USER }}

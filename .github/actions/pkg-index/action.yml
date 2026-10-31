@@ -1,0 +1,62 @@
+name: Package repository index
+description: >
+  Merges new packages into the live repository index on pkg.<domain> and writes a staging
+  directory to publish with the publish action (channel pkg, dest = kind). The live index is
+  fetched over HTTPS, so publishing two packages of one kind at the same moment can drop one
+  entry: keep each kind's publishing in one workflow with a concurrency group.
+inputs:
+  kind:
+    description: apt, pypi or helm
+    required: true
+  packages:
+    description: Directory holding the new .deb, .whl/.tar.gz or chart .tgz files
+    required: true
+  base-url:
+    description: Public URL of this kind's repository, e.g. https://pkg.example.org/apt
+    required: true
+  gpg-key:
+    description: apt only. Key id or fingerprint to sign Release with (imported beforehand)
+    default: ''
+  suite:
+    description: apt only
+    default: stable
+  architectures:
+    description: apt only. Architectures to keep indexes for, space-separated
+    default: amd64 arm64
+outputs:
+  dir:
+    description: Staging directory to publish
+    value: ${{ steps.index.outputs.dir }}
+runs:
+  using: composite
+  steps:
+    - id: index
+      shell: bash
+      env:
+        KIND: ${{ inputs.kind }}
+        PACKAGES: ${{ inputs.packages }}
+        BASE_URL: ${{ inputs.base-url }}
+        GPG_KEY: ${{ inputs.gpg-key }}
+        SUITE: ${{ inputs.suite }}
+        ARCHS: ${{ inputs.architectures }}
+      run: |
+        set -euo pipefail
+        staging="$RUNNER_TEMP/pkg-$KIND"
+        rm -rf "$staging" && mkdir -p "$staging"
+        case $KIND in
+          apt | pypi)
+            python3 "$GITHUB_ACTION_PATH/pkg_index.py" "$KIND" --packages "$PACKAGES" --base-url "$BASE_URL" \
+              --staging "$staging" --gpg-key "$GPG_KEY" --suite "$SUITE" --architectures "$ARCHS"
+            ;;
+          helm)
+            command -v helm >/dev/null || { echo "install helm first (azure/setup-helm)" >&2; exit 1; }
+            cp "$PACKAGES"/*.tgz "$staging/"
+            merge=()
+            if curl -fsSL -o "$RUNNER_TEMP/index-old.yaml" "${BASE_URL%/}/index.yaml"; then
+              merge=(--merge "$RUNNER_TEMP/index-old.yaml")
+            fi
+            helm repo index "$staging" --url "${BASE_URL%/}" "${merge[@]}"
+            ;;
+          *) echo "unknown kind '$KIND'" >&2; exit 1 ;;
+        esac
+        echo "dir=$staging" >>"$GITHUB_OUTPUT"

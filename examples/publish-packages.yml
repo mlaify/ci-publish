@@ -1,0 +1,129 @@
+# Copy to .github/workflows/publish-packages.yml in a repository that builds packages, keep the
+# job for your kind (apt, pypi or helm) and replace the build step. Replace <SHA> as in
+# security-reports.yml, and set the PKG_URL variable (e.g. https://pkg.example.org).
+name: publish-packages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# The repository's live index is the state; two publishes of one kind at once could drop an
+# entry. This group serialises them within the repository. Publish each kind from one repo.
+concurrency:
+  group: ci-publish-pkg
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build
+        run: |
+          mkdir -p dist
+          echo "replace with your build: dpkg-buildpackage / python -m build / helm package" >&2
+          exit 1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packages
+          path: dist/
+          retention-days: 3
+
+  apt:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment: ci-publish
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages
+          path: dist
+      - name: Import the APT signing key
+        id: gpg
+        env:
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+        run: |
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          install -d -m 700 "$GNUPGHOME"
+          echo "GNUPGHOME=$GNUPGHOME" >>"$GITHUB_ENV"
+          printf '%s\n' "$APT_SIGNING_KEY" | gpg --batch --import
+          fpr=$(gpg --batch --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')
+          echo "fpr=$fpr" >>"$GITHUB_OUTPUT"
+      - id: index
+        uses: mlaify/ci-publish/.github/actions/pkg-index@<SHA>
+        with:
+          kind: apt
+          packages: dist
+          base-url: ${{ vars.PKG_URL }}/apt
+          gpg-key: ${{ steps.gpg.outputs.fpr }}
+      - uses: mlaify/ci-publish/.github/actions/publish@<SHA>
+        with:
+          channel: pkg
+          source: ${{ steps.index.outputs.dir }}
+          dest: apt
+        env:
+          PUBLISH_SSH_KEY: ${{ secrets.PUBLISH_SSH_KEY }}
+          PUBLISH_KNOWN_HOSTS: ${{ secrets.PUBLISH_KNOWN_HOSTS }}
+          PUBLISH_HOST: ${{ secrets.PUBLISH_HOST }}
+          PUBLISH_USER: ${{ secrets.PUBLISH_USER }}
+      - if: always()
+        run: rm -rf "$GNUPGHOME"
+
+  pypi:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment: ci-publish
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages
+          path: dist
+      - id: index
+        uses: mlaify/ci-publish/.github/actions/pkg-index@<SHA>
+        with:
+          kind: pypi
+          packages: dist
+          base-url: ${{ vars.PKG_URL }}/pypi
+      - uses: mlaify/ci-publish/.github/actions/publish@<SHA>
+        with:
+          channel: pkg
+          source: ${{ steps.index.outputs.dir }}
+          dest: pypi
+        env:
+          PUBLISH_SSH_KEY: ${{ secrets.PUBLISH_SSH_KEY }}
+          PUBLISH_KNOWN_HOSTS: ${{ secrets.PUBLISH_KNOWN_HOSTS }}
+          PUBLISH_HOST: ${{ secrets.PUBLISH_HOST }}
+          PUBLISH_USER: ${{ secrets.PUBLISH_USER }}
+
+  helm:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment: ci-publish
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages
+          path: dist
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      - id: index
+        uses: mlaify/ci-publish/.github/actions/pkg-index@<SHA>
+        with:
+          kind: helm
+          packages: dist
+          base-url: ${{ vars.PKG_URL }}/helm
+      - uses: mlaify/ci-publish/.github/actions/publish@<SHA>
+        with:
+          channel: pkg
+          source: ${{ steps.index.outputs.dir }}
+          dest: helm
+        env:
+          PUBLISH_SSH_KEY: ${{ secrets.PUBLISH_SSH_KEY }}
+          PUBLISH_KNOWN_HOSTS: ${{ secrets.PUBLISH_KNOWN_HOSTS }}
+          PUBLISH_HOST: ${{ secrets.PUBLISH_HOST }}
+          PUBLISH_USER: ${{ secrets.PUBLISH_USER }}

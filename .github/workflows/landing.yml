@@ -1,0 +1,56 @@
+# The root pages of the mirror and package sites: rebuilt when the mirror manifest changes and after
+# each packages run. (The reports site's root page is written by promote.sh.)
+name: landing
+
+on:
+  push:
+    branches: [main]
+    paths: [mirror/manifest.toml, ci/landing.py, .github/workflows/landing.yml]
+  workflow_run:
+    workflows: [packages]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: landing
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    environment: ci-publish
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - env:
+          MIRROR_URL: ${{ secrets.MIRROR_URL }}
+          PKG_URL: ${{ vars.PKG_URL }}
+        run: |
+          python3 ci/landing.py mirror mirror/manifest.toml "$RUNNER_TEMP/mirror"
+          python3 ci/landing.py pkg "${PKG_URL:?set the PKG_URL variable}/pypi" "$RUNNER_TEMP/pkg"
+      - uses: ./.github/actions/publish
+        with:
+          channel: landing
+          source: ${{ runner.temp }}/mirror
+          dest: mirror
+        env:
+          PUBLISH_SSH_KEY: ${{ secrets.PUBLISH_SSH_KEY }}
+          PUBLISH_KNOWN_HOSTS: ${{ secrets.PUBLISH_KNOWN_HOSTS }}
+          PUBLISH_HOST: ${{ secrets.PUBLISH_HOST }}
+          PUBLISH_USER: ${{ secrets.PUBLISH_USER }}
+      - uses: ./.github/actions/publish
+        with:
+          channel: landing
+          source: ${{ runner.temp }}/pkg
+          dest: pkg
+        env:
+          PUBLISH_SSH_KEY: ${{ secrets.PUBLISH_SSH_KEY }}
+          PUBLISH_KNOWN_HOSTS: ${{ secrets.PUBLISH_KNOWN_HOSTS }}
+          PUBLISH_HOST: ${{ secrets.PUBLISH_HOST }}
+          PUBLISH_USER: ${{ secrets.PUBLISH_USER }}

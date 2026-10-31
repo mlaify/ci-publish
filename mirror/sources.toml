@@ -1,0 +1,136 @@
+# What the weekly updater (ci/mirror_update.py) follows. It finds each source's latest stable
+# release, verifies the upstream signature, and rewrites the managed block in manifest.toml; the
+# change arrives as a pull request, and merging it runs the mirror sync.
+#
+# Trust anchors are pinned here. Distribution ISOs are checked against the distribution's signed
+# checksum file. GitHub release assets are checked against the SHA-256 GitHub records for the
+# upload (nothing from the publisher signs them), so they also wait until they are min_age_days old
+# before being mirrored, the same cool-off this repository uses for its own tools.
+
+[ubuntu]
+# Ubuntu CD Image Automatic Signing Key (2012). Checked 2026-10-30 against 26.04.1's SHA256SUMS.gpg.
+key = "843938DF228D22F7B3742BC0D94AA3F0EFE21092"
+# Each series follows its newest point release (26.04 -> 26.04.1 -> 26.04.2 ...).
+series = ["26.04"]
+images = ["live-server-amd64.iso"]
+
+[fedora]
+# Fedora's published keyring; a CHECKSUM file must be signed by the key named "Fedora (<release>)".
+keyring = "https://fedoraproject.org/fedora.gpg"
+# Latest stable release only (no Beta or RC), x86_64.
+variants = ["Silverblue", "Workstation"]
+
+[kali]
+# Kali Linux archive signing key. Checked 2026-10-30 against kali-2026.3's SHA256SUMS.gpg.
+key = "827C8569F2518CC677FECA1AED65462EC8D5E4C5"
+# The live ISO is published only as a torrent (HTTP 404), so the ready-made QEMU VM image instead.
+images = ["installer-amd64.iso", "qemu-amd64.7z"]
+
+[debian]
+# Debian CD signing key. Checked 2026-10-30 against debian-cd/current SHA256SUMS.sign.
+key = "DF9B9C49EAA9298432589D76DA87E80D6294BE9B"
+
+[alpine]
+# Natanael Copa's Alpine release key; Alpine signs each ISO. Small, quick test VMs.
+key = "0482D84022F52DF1C4E7CD43293ACD0907D9495A"
+arches = ["x86_64", "aarch64"]
+
+[ubuntu_cloud]
+# UEC Image Automatic Signing Key. Checked 2026-10-30 against 26.04 release SHA256SUMS.gpg.
+key = "D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81"
+series = ["26.04"]
+arches = ["amd64", "arm64"]
+
+[wireshark]
+# Gerald Combs; signs SIGNATURES-<version>.txt. Checked 2026-10-30 against 4.6.9. Latest stable (even minor).
+key = "5A5ADBA7DBEA6C3F87224F1982244A78E6FEAEEA"
+files = [
+  { name = "Wireshark-{version}-x64.exe", dir = "win64" },
+  { name = "Wireshark {version}.dmg", dir = "osx" },
+]
+
+[remnux]
+# Malware-analysis VM. Hashes come from the HTTPS docs page (not signed), so the same cool-off as GitHub.
+min_age_days = 14
+files = ["remnux-noble-amd64.ova", "remnux-noble-arm64-utm.zip"]
+
+[github]
+min_age_days = 14
+
+[[github.release]]
+name = "ghidra"
+repo = "NationalSecurityAgency/ghidra"
+asset = '^ghidra_[0-9.]+_PUBLIC_[0-9]+\.zip$'
+
+[[github.release]]
+# Ghidra 12 needs JDK 21.
+name = "temurin-jdk21"
+repo = "adoptium/temurin21-binaries"
+asset = '^OpenJDK21U-jdk_x64_linux_hotspot_[0-9._]+\.tar\.gz$'
+
+[[github.release]]
+# The "cyber Swiss army knife", as a self-contained HTML app for offline use.
+name = "cyberchef"
+repo = "gchq/CyberChef"
+asset = '^CyberChef_v[0-9.]+\.zip$'
+
+[[github.release]]
+name = "radare2"
+repo = "radareorg/radare2"
+asset = ['^radare2_[0-9.]+_amd64\.deb$', '^radare2-arm64-[0-9.]+\.pkg$', '^radare2-[0-9.]+-w64\.zip$']
+
+[[github.release]]
+# Rizin's GUI.
+name = "cutter"
+repo = "rizinorg/cutter"
+asset = ['^Cutter-v[0-9.]+-Linux-x86_64\.AppImage$', '^Cutter-v[0-9.]+-macOS-arm64\.dmg$', '^Cutter-v[0-9.]+-Windows-x86_64\.zip$']
+
+[[github.release]]
+name = "volatility3"
+repo = "volatilityfoundation/volatility3"
+asset = ['^volatility3-[0-9.]+-py3-none-any\.whl$', '^volatility3-win-exes-[0-9.]+\.zip$']
+
+[[github.release]]
+# Windows builds; the source is under first_seen.
+name = "yara"
+repo = "VirusTotal/yara"
+asset = '^yara-[0-9.]+-[0-9]+-win64\.zip$'
+
+[[github.release]]
+name = "firecracker"
+repo = "firecracker-microvm/firecracker"
+asset = ['^firecracker-v[0-9.]+-x86_64\.tgz$', '^firecracker-v[0-9.]+-aarch64\.tgz$']
+
+[[github.release]]
+name = "lima"
+repo = "lima-vm/lima"
+asset = ['^lima-[0-9.]+-Darwin-arm64\.tar\.gz$', '^lima-[0-9.]+-Linux-x86_64\.tar\.gz$']
+
+[first_seen]
+# These publish no checksum. The hash is taken the first time a version appears and kept after
+# that, so a file that later changes upstream fails the sync. Review new ones in the weekly PR.
+min_age_days = 14
+
+[[first_seen.github_tag]]
+name = "seclists"
+repo = "danielmiessler/SecLists"
+dir = "wordlists"
+
+[[first_seen.github_tag]]
+name = "yara-src"
+repo = "VirusTotal/yara"
+dir = "tools"
+
+[[first_seen.github_branch]]
+# Mandiant's installer that turns a Windows VM into a reverse-engineering box (no releases).
+name = "flare-vm"
+repo = "mandiant/flare-vm"
+branch = "main"
+dir = "tools"
+
+[[first_seen.vagrant]]
+# Rapid7's intentionally vulnerable Ubuntu 14.04 VM, for practice. Isolated lab networks only.
+name = "metasploitable3-ub1404"
+box = "rapid7/metasploitable3-ub1404"
+provider = "virtualbox"
+dir = "targets"
