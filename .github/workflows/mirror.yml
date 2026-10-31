@@ -1,0 +1,46 @@
+name: mirror
+
+on:
+  push:
+    branches: [main]
+    paths: [mirror/manifest.toml]
+  workflow_dispatch:
+    inputs:
+      only:
+        description: Space-separated manifest paths to sync (empty = all)
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    environment: ci-publish
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0   # a push syncs only what changed since the previous commit
+      - name: Sync
+        env:
+          PUBLISH_SSH_KEY: ${{ secrets.PUBLISH_SSH_KEY }}
+          PUBLISH_KNOWN_HOSTS: ${{ secrets.PUBLISH_KNOWN_HOSTS }}
+          PUBLISH_HOST: ${{ secrets.PUBLISH_HOST }}
+          PUBLISH_USER: ${{ secrets.PUBLISH_USER }}
+          MIRROR_URL: ${{ secrets.MIRROR_URL }}
+          MIRROR_AUTH: ${{ secrets.MIRROR_AUTH }}
+          ONLY: ${{ inputs.only }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          read -r -a only <<<"${ONLY:-}"
+          since=()
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ -n "${BEFORE:-}" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ]; then
+            since=(--since "$BEFORE")
+          fi
+          python3 ci/mirror_sync.py mirror/manifest.toml ${only[@]+--only "${only[@]}"} ${since[@]+"${since[@]}"}

@@ -1,0 +1,25 @@
+name: Publish to the CI web host
+description: >
+  Uploads a directory to the web host's write-only drop. The host's promote.sh moves it into the
+  web root for the channel within about five minutes, after checking it.
+inputs:
+  channel:
+    description: reports, mirror, pkg, docs or landing
+    required: true
+  source:
+    description: Local directory whose contents are published
+    required: true
+  dest:
+    description: >
+      Destination inside the channel. reports: <repo>/<full sha>, or leaks/<repo>/<full sha>. mirror: a directory path.
+      pkg: apt, helm or pypi. docs: one site name. landing: mirror or pkg.
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        SOURCE: ${{ inputs.source }}
+        DEST: ${{ inputs.dest }}
+      run: '"$GITHUB_ACTION_PATH/publish.sh"'

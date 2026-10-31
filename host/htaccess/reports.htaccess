@@ -1,0 +1,24 @@
+# reports.<domain>/public_html/.htaccess (operator-owned; promote.sh never writes it)
+# Private: your own network without a password, everyone else needs the basic-auth login.
+# Behind a proxy or CDN, Require ip sees the proxy's addresses: serve this name directly.
+Options -ExecCGI -Indexes
+<FilesMatch "\.(php[0-9]*|phtml|phar|pht|phps|cgi|fcgi|pl|py|rb|sh|shtml)$">
+  Require all denied
+</FilesMatch>
+
+AuthType Basic
+AuthName "security reports"
+AuthUserFile /home/USER/.htpasswd-reports
+<RequireAny>
+  Require ip HOME_CIDR
+  Require valid-user
+</RequireAny>
+
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow"
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "no-referrer"
+  # Report HTML (ZAP and the like) carries scripts: run each page in an opaque origin so it
+  # can't read other reports.
+  Header set Content-Security-Policy "sandbox allow-scripts allow-popups allow-downloads"
+</IfModule>

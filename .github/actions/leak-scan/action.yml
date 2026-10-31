@@ -1,0 +1,31 @@
+name: Leak scan report
+description: >
+  Runs gitleaks over a checkout's current files and its full git history, with gitleaks' default
+  secret rules plus optional private rules, and writes a report directory: index.html, summary.txt
+  and meta.json. Values are redacted, and commit authors and messages are left out.
+inputs:
+  path:
+    description: Directory of a full-history git checkout (fetch-depth 0)
+    default: .
+  repository:
+    description: owner/name shown in the report
+    default: ${{ github.repository }}
+  visibility:
+    description: public or private; findings in a public repository are flagged as exposed
+    default: private
+outputs:
+  dir:
+    description: The report directory
+    value: ${{ steps.scan.outputs.dir }}
+runs:
+  using: composite
+  steps:
+    - id: scan
+      shell: bash
+      env:
+        SCAN_PATH: ${{ inputs.path }}
+        REPORT_REPOSITORY: ${{ inputs.repository }}
+        REPORT_VISIBILITY: ${{ inputs.visibility }}
+      # Private rules come from the caller's environment as LEAK_RULES (a gitleaks TOML config),
+      # normally a secret: they describe what must not leak, so they never belong in a repository.
+      run: '"$GITHUB_ACTION_PATH/leak_scan.sh"'

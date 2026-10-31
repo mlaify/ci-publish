@@ -1,0 +1,21 @@
+# mirror.<domain>/public_html/.htaccess (operator-owned)
+# Private like the reports: some images (Windows evaluation ISOs, vendor tools) may not be
+# redistributed publicly. Serve it directly, not through a proxy (large files; Require ip needs real addresses).
+Options -ExecCGI +Indexes
+IndexOptions FancyIndexing NameWidth=* SuppressDescription
+<FilesMatch "\.(php[0-9]*|phtml|phar|pht|phps|cgi|fcgi|pl|py|rb|sh|shtml)$">
+  Require all denied
+</FilesMatch>
+
+AuthType Basic
+AuthName "lab mirror"
+AuthUserFile /home/USER/.htpasswd-mirror
+<RequireAny>
+  Require ip HOME_CIDR
+  Require valid-user
+</RequireAny>
+
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow"
+  Header set X-Content-Type-Options "nosniff"
+</IfModule>

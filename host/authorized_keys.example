@@ -1,0 +1,9 @@
+# ~/.ssh/authorized_keys on the web host. Replace HOME_CIDR with the network you log in from.
+
+# Your own login: a hardware-backed key, only from your own network.
+from="HOME_CIDR",no-agent-forwarding,no-port-forwarding,no-X11-forwarding sk-ssh-ed25519@openssh.com AAAA... you@hardware-key
+
+# One line per publishing repository (tools/add-publisher.sh prints it). The forced command confines
+# the key to writing new files under ~/ci-drop: no shell, no reads, no deletes, no forwarding.
+# -no-lock lets several uploads run at once; drop it if your rrsync is older than 3.2.4.
+command="/usr/bin/rrsync -wo -no-lock /home/USER/ci-drop",restrict ssh-ed25519 AAAA... gha-<repo>-publish

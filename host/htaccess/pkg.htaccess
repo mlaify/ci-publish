@@ -1,0 +1,17 @@
+# pkg.<domain>/public_html/.htaccess (operator-owned)
+# Public: package indexes are signed (APT) or hash-pinned (pip, Helm), so the files themselves
+# are not secret. Put basic auth here too if the packages are private.
+Options -ExecCGI +Indexes
+<FilesMatch "\.(php[0-9]*|phtml|phar|pht|phps|cgi|fcgi|pl|py|rb|sh|shtml)$">
+  Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  # no-transform stops a CDN injecting scripts into the pages (Cloudflare's bot detection, which
+  # a Free zone can't otherwise turn off per host); an index should reach pip as published.
+  Header merge Cache-Control "no-transform"
+  # Indexes change in place; don't let caches serve an index older than its packages.
+  <FilesMatch "^(Release|InRelease|Release\.gpg|Packages(\.gz)?|index\.yaml|index\.html|state\.json)$">
+    Header set Cache-Control "no-cache, no-transform"
+  </FilesMatch>
+</IfModule>

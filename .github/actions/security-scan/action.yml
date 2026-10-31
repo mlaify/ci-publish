@@ -1,0 +1,37 @@
+name: Security scan report
+description: >
+  Runs Trivy (vulnerabilities, secrets, misconfigurations, CycloneDX SBOM) and Semgrep over a
+  checkout and writes a report directory: index.html, summary.txt, sbom.cdx.json, trivy.json
+  and sarif/*.sarif. Publishing it is a separate step (the publish action).
+inputs:
+  path:
+    description: Directory to scan
+    default: .
+  semgrep-config:
+    description: Semgrep rule set(s), space-separated
+    default: p/default
+  repository:
+    description: owner/name shown in the report, when scanning another repository's checkout
+    default: ''
+  sha:
+    description: Commit shown in the report, when scanning another repository's checkout
+    default: ''
+  ref:
+    description: Branch shown in the report, when scanning another repository's checkout
+    default: ''
+outputs:
+  dir:
+    description: The report directory
+    value: ${{ steps.scan.outputs.dir }}
+runs:
+  using: composite
+  steps:
+    - id: scan
+      shell: bash
+      env:
+        SCAN_PATH: ${{ inputs.path }}
+        SEMGREP_CONFIG: ${{ inputs.semgrep-config }}
+        REPORT_REPOSITORY: ${{ inputs.repository }}
+        REPORT_SHA: ${{ inputs.sha }}
+        REPORT_REF: ${{ inputs.ref }}
+      run: '"$GITHUB_ACTION_PATH/scan.sh"'

@@ -1,0 +1,62 @@
+# ci-publish scans itself: Trivy + Semgrep, SARIF to code scanning, report to the reports site.
+# The same as examples/security-reports.yml, but with this repository's own actions by path.
+name: security-reports
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: scan
+        uses: ./.github/actions/security-scan
+      - uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true   # code scanning is off on some repositories; the report still publishes
+        with:
+          sarif_file: ${{ steps.scan.outputs.dir }}/sarif
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: security-report
+          path: ${{ steps.scan.outputs.dir }}
+          retention-days: 7
+
+  publish:
+    needs: scan
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: ci-publish
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/actions
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: security-report
+          path: ${{ runner.temp }}/report
+      - uses: ./.github/actions/publish
+        with:
+          channel: reports
+          source: ${{ runner.temp }}/report
+          dest: ${{ github.event.repository.name }}/${{ github.sha }}
+        env:
+          PUBLISH_SSH_KEY: ${{ secrets.PUBLISH_SSH_KEY }}
+          PUBLISH_KNOWN_HOSTS: ${{ secrets.PUBLISH_KNOWN_HOSTS }}
+          PUBLISH_HOST: ${{ secrets.PUBLISH_HOST }}
+          PUBLISH_USER: ${{ secrets.PUBLISH_USER }}
